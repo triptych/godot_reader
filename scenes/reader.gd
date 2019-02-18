@@ -1,31 +1,25 @@
 extends Control
 
-# Declare member variables here. Examples:
-# var a = 2
-# var b = "text"
 var title_arr = []
 var desc_arr = []
 var link_arr = []
 
-# Called when the node enters the scene tree for the first time.
+
 func _ready():
-	pass # Replace with function body.
+	#pass # Replace with function body.
+	load_data()
 
-# Called every frame. 'delta' is the elapsed time since the previous frame.
-#func _process(delta):
-#	pass
-
+# event handlers
 
 func _on_Open_Url_pressed():
-	#$HTTPRequest.request("http://www.mocky.io/v2/5185415ba171ea3a00704eed")
-	#$HTTPRequest.request("https://www.google.com")
-	#$HTTPRequest.request("https://abcnews.go.com/abcnews/topstories")
 	$HTTPRequest.request($InputRSS.text)
 	
-	title_arr.empty()
-	desc_arr.empty()
-	link_arr.empty()
-	$ItemList.clear()
+	title_arr.clear()
+	desc_arr.clear()
+	link_arr.clear()
+	$ItemList.clear() #this doesnt seem to be working
+	$DescriptionField.text = ""
+	$LinkButton.text = ""
 	
 	for x in $ItemList.get_item_count():
 		$ItemList.remove_item(x)
@@ -42,63 +36,23 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 	
 	
 	p.open_buffer(body)
-	#print(p.get_current_line())
-#	print("------")
-#	print(p.is_empty())
-#	print(p.get_attribute_count())
-#	print(p.get_node_data())
-#	p.read()
-#	print("get node data")
-#	print(p.get_node_data())
-#	print("---")
-#	print(p.get_node_name())
-#	print(p.get_attribute_count())
-#	print(p.get_attribute_name(2))
-#	p.read()
-#	print("---")
-#	print(p.get_node_name())
-#	print(p.get_attribute_count())
-#	print(p.get_attribute_name(0))
-	#print(response_code)
-	#print(body.size())
-	#print(body.get_string_from_ascii())
-	# print(body)
-	#print (body.get_string_from_utf8())
-	#var json = JSON.parse(body.get_string_from_utf8())
+	
+
 	$RSSField.set_text(body.get_string_from_utf8())
-	#print(json.result)
-#	p.read()
-#	p.read()
-	#print(p.get_node_name())
-	#print("seek")
-	#p.seek(1)
-	#print(p.get_node_name())
+
 	while p.read() == OK:
 		
 		var node_name = p.get_node_name()
 		var node_data = p.get_node_data()
 		var node_type = p.get_node_type()
 		
-		# print("START: --")
-		# print("node_name: " + node_name)
-		# print("node_type: " + str(node_type))
-		# print("node_data: " + node_data)
 		
 		if(node_name == "item"):
 			in_item_node = !in_item_node #toggle item mode
-			#print("found item!")
-			#print("- in_item_node " + str(in_item_node))
+
 		if (node_name == "title") and (in_item_node == true):
 			in_title_node = !in_title_node
-			#print("found title!")	
-			#print("-- in_title_node " + str(in_title_node))
 			continue
-#		if (node_name == '') and (in_title_node):
-#			print("Title: " + node_data)
-				
-		# print("-- :END")
-		#p.read()
-		#print(p.get_node_name())
 		
 		if(node_name == "description") and (in_item_node == true):
 			in_description_node = !in_description_node
@@ -110,27 +64,27 @@ func _on_HTTPRequest_request_completed(result, response_code, headers, body):
 		
 		
 		if(in_description_node == true):
-			print("description-data" + node_data)
+			# print("description-data" + node_data)
 			if(node_data != ""):
 				desc_arr.append(node_data)
 			else:
-				print("description:" + node_name)
+				# print("description:" + node_name)
 				desc_arr.append(node_name)
 		
 		if(in_title_node == true):
-			print("Title-data:"+ node_data)
+			# print("Title-data:"+ node_data)
 			if(node_data !=""):
 				title_arr.append(node_data)
 			else:
-				print("Title:" + node_name)
+				# print("Title:" + node_name)
 				title_arr.append(node_name)
-		#print("node_data:" + node_data)
+
 		if(in_link_node == true):
-			print("link-desc" + node_data)
+			# print("link-desc" + node_data)
 			if(node_data != ""):
 				link_arr.append(node_data)
 			else:
-				print("link" + node_name)
+				# print("link" + node_name)
 				link_arr.append(node_name)
 		
 	for i in title_arr: 
@@ -151,3 +105,63 @@ func _on_ItemList_item_selected(index):
 func _on_LinkButton_pressed():
 	OS.shell_open($LinkButton.text)
 	pass # Replace with function body.
+
+
+func _on_ConfigButton_pressed():
+	$ConfigWindow.popup()
+	pass # Replace with function body.
+
+# Replace with function body.
+
+
+func _on_DeleteButton_pressed():
+	print("delete rss feed")
+	#pass # Replace with function body.
+	$ConfigWindow/InputDelRSS.text = ""
+
+
+
+func _on_SaveButton_pressed():
+	print("save button pressed")
+	var save_game = File.new()
+	save_game.open("user://save_game.save", File.WRITE)
+#	var save_nodes = get_tree().get_nodes_in_group("Persist")
+#	for i in save_nodes:
+#    	# Now we can call our save function on each node.
+#		var node_data = i.call("save")
+#		save_game.store_line(to_json(node_data))
+	var node_data = save()
+	print(str(node_data))
+	save_game.store_line(to_json(node_data))
+	save_game.close()
+
+func save():
+	print("save called")
+	var save_dict = {
+		"url" : $ConfigWindow/InputDelRSS.text
+	}
+	return save_dict
+	
+	#pass # Replace with function body.
+
+func load_data(): 
+	print("load_data called")
+	var save_game = File.new()
+	if not save_game.file_exists("user://save_game.save"):
+		return #error no save game!
+	save_game.open("user://save_game.save", File.READ)
+	print("opened save")
+	var text = save_game.get_as_text()
+	print(text)
+	print(parse_json(text)['url'])
+	$ConfigWindow/InputDelRSS.text = parse_json(text)['url']
+	$InputRSS.text = $ConfigWindow/InputDelRSS.text
+	
+#	while not save_game.eof_reached():
+#		print("found a line")
+#		print("line"+ save_game.get_line())
+		#var current_line = parse_json(save_game.get_line())
+		#print("current_line" + current_line['url'])
+		# $ConfigWindow/InputDelRSS.text = current_line["url"]
+	save_game.close()
+		
